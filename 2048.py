@@ -34,7 +34,6 @@ tmr = 0
 msg = ""
 score = 0
 high_score = 0
-key_di = 0
 # =============== MASU ===============
 MASU_NUM = 4
 MASU_SIZE = 160
@@ -128,126 +127,159 @@ def random_place():
 
 # ******************** 上下左右(↑:w ↓:s ←:a →:d)のコマンド入力 ********************
 def command_key(key):
-    global key_di
 
     if key[pygame.K_w] == 1:    # 上方向
-        key_di = DIR_UP
+        return DIR_UP
     elif key[pygame.K_s] == 1:  # 下方向
-        key_di = DIR_DOWN
+        return DIR_DOWN
     elif key[pygame.K_a] == 1:  # 左方向
-        key_di = DIR_LEFT
+        return DIR_LEFT
     elif key[pygame.K_d] == 1:  # 右方向
-        key_di = DIR_RIGHT
+        return DIR_RIGHT
     else:                       # NG方向
-        key_di = COMMAND_NG
+        return COMMAND_NG
+
+
+# ******************** コマンドの入力方向にスライドが可能か確認 ********************
+def slide_check(dir_key):
+    # 確認：1回以上、数字を動かせたか or 数字を合算することができるか(同じ数字が動かす方向に並んでいる)
+    command_ok = False
+    
+    # 上方向 ／ 下方向
+    if dir_key == DIR_UP or dir_key == DIR_DOWN:
+        for y in range(MASU_NUM - 1):
+            for x in range(MASU_NUM):
+                    
+                # 上方向
+                if dir_key == DIR_UP:
+                    # 数字が動かせる場合(数字を動かす先が0)
+                    if board[y][x] == 0 and board[y+1][x] != 0:
+                        command_ok = True
+                    # 0以外で数字が並ぶ場合 -> 動かせないが[same_num_check()]で合算できるため、コマンドOK
+                    elif board[y][x] == board[y+1][x] and board[y][x] != 0:
+                        command_ok = True
+                # 下方向
+                elif dir_key == DIR_DOWN:
+                    # 数字が動かせる場合(数字を動かす先が0)
+                    if board[(MASU_NUM-1)-y][x] == 0 and board[(MASU_NUM-2)-y][x] != 0:
+                        command_ok = True
+                    # 0以外で数字が並ぶ場合 -> 動かせないが[same_num_check()]で合算できるため、コマンドOK
+                    elif board[(MASU_NUM-1)-y][x] == board[(MASU_NUM-2)-y][x] and board[(MASU_NUM-1)-y][x] != 0:
+                        command_ok = True
+        
+    # 左方向 ／ 右方向
+    if dir_key == DIR_LEFT or dir_key == DIR_RIGHT:
+        for x in range(MASU_NUM - 1):
+            for y in range(MASU_NUM):
+
+                # 左方向
+                if dir_key == DIR_LEFT:
+                    # 数字が動かせる場合(数字を動かす先が0)
+                    if board[y][x] == 0 and board[y][x+1] != 0:
+                        command_ok = True
+                    # 0以外で数字が並ぶ場合 -> 動かせないが[same_num_check()]で合算できるため、コマンドOK
+                    elif board[y][x] == board[y][x+1] and board[y][x] != 0:
+                        command_ok = True
+                # 右方向
+                if dir_key == DIR_RIGHT:
+                    # 数字が動かせる場合(数字を動かす先が0)
+                    if board[y][(MASU_NUM-1)-x] == 0 and board[y][(MASU_NUM-2)-x] != 0:
+                        command_ok = True
+                    # 0以外で数字が並ぶ場合 -> 動かせないが[same_num_check()]で合算できるため、コマンドOK
+                    elif board[y][(MASU_NUM-1)-x] == board[y][(MASU_NUM-2)-x] and board[y][(MASU_NUM-1)-x] != 0:
+                        command_ok = True
+
+    return command_ok 
 
 
 # ******************** 数字をコマンド方向にスライドさせる(スライドが可能かの確認を含む) ********************
-def slide():
-    # 確認：1回以上、数字を動かせたか or 数字を合算することができるか(同じ数字が動かす方向に並んでいる)
-    command_ok = False
+def slide(dir_key):
     
     while True:
         # 移動させた回数
         move_count = 0
 
         # 上方向 ／ 下方向
-        if key_di == DIR_UP or key_di == DIR_DOWN:
+        if dir_key == DIR_UP or dir_key == DIR_DOWN:
             for y in range(MASU_NUM - 1):
                 for x in range(MASU_NUM):
                     
                     # 上方向
-                    if key_di == DIR_UP:
+                    if dir_key == DIR_UP:
                         # 数字が動かせる場合(数字を動かす先が0)
                         if board[y][x] == 0 and board[y+1][x] != 0:
                             board[y][x] = board[y+1][x]
                             board[y+1][x] = 0
                             move_count += 1
-                            command_ok = True
-                        # 0以外で数字が並ぶ場合 -> 動かせないが[same_num_check()]で合算できるため、コマンドOK
-                        elif board[y][x] == board[y+1][x] and board[y][x] != 0:
-                            command_ok = True
                     # 下方向
-                    elif key_di == DIR_DOWN:
+                    elif dir_key == DIR_DOWN:
                         # 数字が動かせる場合(数字を動かす先が0)
                         if board[(MASU_NUM-1)-y][x] == 0 and board[(MASU_NUM-2)-y][x] != 0:
                             board[(MASU_NUM-1)-y][x] = board[(MASU_NUM-2)-y][x]
                             board[(MASU_NUM-2)-y][x] = 0
                             move_count += 1
-                            command_ok = True
-                        # 0以外で数字が並ぶ場合 -> 動かせないが[same_num_check()]で合算できるため、コマンドOK
-                        elif board[(MASU_NUM-1)-y][x] == board[(MASU_NUM-2)-y][x] and board[(MASU_NUM-1)-y][x] != 0:
-                            command_ok = True
         
         # 左方向 ／ 右方向
-        if key_di == DIR_LEFT or key_di == DIR_RIGHT:
+        if dir_key == DIR_LEFT or dir_key == DIR_RIGHT:
             for x in range(MASU_NUM - 1):
                 for y in range(MASU_NUM):
 
                     # 左方向
-                    if key_di == DIR_LEFT:
+                    if dir_key == DIR_LEFT:
                         # 数字が動かせる場合(数字を動かす先が0)
                         if board[y][x] == 0 and board[y][x+1] != 0:
                             board[y][x] = board[y][x+1]
                             board[y][x+1] = 0
                             move_count += 1
-                            command_ok = True
-                        # 0以外で数字が並ぶ場合 -> 動かせないが[same_num_check()]で合算できるため、コマンドOK
-                        elif board[y][x] == board[y][x+1] and board[y][x] != 0:
-                            command_ok = True
                     # 右方向
-                    if key_di == DIR_RIGHT:
+                    if dir_key == DIR_RIGHT:
                         # 数字が動かせる場合(数字を動かす先が0)
                         if board[y][(MASU_NUM-1)-x] == 0 and board[y][(MASU_NUM-2)-x] != 0:
                             board[y][(MASU_NUM-1)-x] = board[y][(MASU_NUM-2)-x]
                             board[y][(MASU_NUM-2)-x] = 0
                             move_count += 1
-                            command_ok = True
-                        # 0以外で数字が並ぶ場合 -> 動かせないが[same_num_check()]で合算できるため、コマンドOK
-                        elif board[y][(MASU_NUM-1)-x] == board[y][(MASU_NUM-2)-x] and board[y][(MASU_NUM-1)-x] != 0:
-                            command_ok = True
+                            
         # 一度も動かさなくなったら、ループを抜ける        
         if move_count == 0:
             break
 
-    return command_ok
 
 
 # ******************** スライド方向に同じ数字が並ぶ場合は数字を合算する ********************
-def same_num_check():
+def same_num_check(dir_key):
     global score, high_score
     
     # 上方向 ／ 下方向
-    if key_di == DIR_UP or key_di == DIR_DOWN:
+    if dir_key == DIR_UP or dir_key == DIR_DOWN:
         for y in range(MASU_NUM - 1):
             for x in range(MASU_NUM):
 
                 # 上方向
-                if key_di == DIR_UP:
+                if dir_key == DIR_UP:
                     if board[y][x] == board[y+1][x] and board[y][x] != 0:
                         board[y][x] *= 2
                         board[y+1][x] = 0
                         score += board[y][x]
                 # 下方向
-                if key_di == DIR_DOWN:
+                if dir_key == DIR_DOWN:
                     if board[(MASU_NUM-1)-y][x] == board[(MASU_NUM-2)-y][x] and board[(MASU_NUM-1)-y][x] != 0:
                         board[(MASU_NUM-1)-y][x] *= 2
                         board[(MASU_NUM-2)-y][x] = 0
                         score += board[(MASU_NUM-1)-y][x]
 
     # 左方向 ／ 右方向
-    if key_di == DIR_LEFT or key_di == DIR_RIGHT:
+    if dir_key == DIR_LEFT or dir_key == DIR_RIGHT:
         for x in range(MASU_NUM-1):
             for y in range(MASU_NUM):
 
                 # 左方向
-                if key_di == DIR_LEFT:
+                if dir_key == DIR_LEFT:
                     if board[y][x] == board[y][x+1] and board[y][x] != 0:
                         board[y][x] *= 2
                         board[y][x+1] = 0
                         score += board[y][x]
                 # 右方向
-                if key_di == DIR_RIGHT:
+                if dir_key == DIR_RIGHT:
                     if board[y][(MASU_NUM-1)-x] == board[y][(MASU_NUM-2)-x] and board[y][(MASU_NUM-1)-x] != 0:
                         board[y][(MASU_NUM-1)-x] *= 2
                         board[y][(MASU_NUM-2)-x] = 0
@@ -353,35 +385,36 @@ def main():
         # プレイヤープレイ中
         elif idx == 1:
             msg = "W - UP  S - DOWN  A - LEFT  D - RIGHT"
+            
             # 最初に、ランダムに「2」を配置
             if tmr == 1:
                 random_place()
-                
-            # コマンド入力を受け付ける
+
             elif tmr > 10:
-                command_key(key)
-                
-                if key_di != COMMAND_NG:    # 適正なコマンド入力が得られた場合
-                    save()                  # スライド前のボードを保存
-                    
-                    if slide() == True:     # 確認：コマンド方向にスライドが可能か
-                        same_num_check()    # 数字の合算を行う
-                        slide()             # 数字の合算を行った場合を考慮して、もう一度スライド
-                        idx = 2
-                        tmr = 0
-        
-        # ゲームの終了判定
-        elif idx == 2:
-            # ゲーム終了へ
-            if game_set() == True:
-                idx == 3
-            # ゲーム続行
-            else:
-                idx = 1
-                tmr = 0
+                # 判定：スライドが可能か
+                slide_ok = 0
+                for di in range(4):
+                    if slide_check(di) == True:
+                        slide_ok += 1
+
+                # スライド不可 -> ゲーム終了
+                if slide_ok == 0:
+                    idx = 2
+                    tmr = 0
+
+                # スライド可能 -> コマンド入力を受け付ける
+                else:
+                    dir_key = command_key(key)
+                    if dir_key != COMMAND_NG:
+                        # 確認：コマンド入力の方向にスライドが可能か
+                        if slide_check(dir_key) == True:
+                            slide(dir_key)              # スライド処理
+                            same_num_check(dir_key)     # 同じ数字 -> 数字の合算処理
+                            slide(dir_key)              # スライド処理
+                            tmr = 0
 
         # ゲーム終了
-        elif idx == 3:
+        elif idx == 2:
             msg = "GAME OVER!"
             if tmr == 120:
                 idx = 0
