@@ -2,6 +2,7 @@ import pygame
 import sys
 import math
 import random
+import tkinter.messagebox
 
 # ******************** 変数／定数 ********************
 # =============== COLOR ===============
@@ -34,6 +35,12 @@ tmr = 0
 msg = ""
 score = 0
 high_score = 0
+# =============== AUTO MODE ===============
+auto_mode = False
+AUTO_MAX = 100
+score_list = [0]*AUTO_MAX
+move_list = [0]*AUTO_MAX
+auto_count = 0
 # =============== MASU ===============
 MASU_NUM = 4
 MASU_SIZE = 160
@@ -293,7 +300,7 @@ def same_num_check(dir_key):
 # ******************** ゲームのリスタート ********************
 def game_restart():
     global score
-
+    
     # スコアの初期化
     score = 0
     # ボードの初期化
@@ -331,15 +338,14 @@ def restart_undo(mx, my):
         load()
 
 
-# ******************** ゲームの終了判定 ********************
-def game_set():
-    # ランダムに数字を置けなくなった(空きのマスがない)場合は、ゲーム終了
+# ******************** リスタート／戻る ********************
+def max_num_search():
+    max_num = 0
     for y in range(MASU_NUM):
         for x in range(MASU_NUM):
-            if board[y][x] == 0:
-                return False
-    return True
-
+            if board[y][x] > max_num:
+                max_num = board[y][x]
+    return max_num
 
 # ============================================================
 #                           MAIN
@@ -347,7 +353,7 @@ def game_set():
     
 # ******************** メインループ ********************
 def main():
-    global idx, tmr, msg, high_score
+    global idx, tmr, msg, high_score, auto_mode, auto_count
     
     pygame.init()
     pygame.display.set_caption("2048")
@@ -377,8 +383,13 @@ def main():
 
         # タイトル
         if idx == 0:
-            msg = "push [SPACE] to start game!"
+            msg = "[SPACE] : play game - [ENTER] : auto"
             if key[pygame.K_SPACE] == 1:
+                auto_mode = False
+                idx = 1
+                tmr = 0
+            elif key[pygame.K_RETURN] == 1:
+                auto_mode = True
                 idx = 1
                 tmr = 0
 
@@ -390,7 +401,8 @@ def main():
             if tmr == 1:
                 random_place()
 
-            elif tmr > 10:
+            # ゲームプレイ
+            elif tmr > 10 and auto_mode == False:
                 # 判定：スライドが可能か
                 slide_ok = 0
                 for di in range(4):
@@ -408,17 +420,77 @@ def main():
                     if dir_key != COMMAND_NG:
                         # 確認：コマンド入力の方向にスライドが可能か
                         if slide_check(dir_key) == True:
+                            save()
                             slide(dir_key)              # スライド処理
                             same_num_check(dir_key)     # 同じ数字 -> 数字の合算処理
                             slide(dir_key)              # スライド処理
                             tmr = 0
 
+            # 自動モード
+            elif auto_mode == True:
+                # 判定：スライドが可能か
+                slide_ok = 0
+                for di in range(4):
+                    if slide_check(di) == True:
+                        slide_ok += 1
+                        
+                # スライド不可 -> ゲーム終了
+                if slide_ok == 0:
+                    idx = 2
+                    tmr = 0
+                # スライド可能 -> ランダムにスライド方向を選択
+                else:
+                    dir_key = random.randint(0, 3)
+                    # 確認：入力方向にスライドが可能か
+                    if slide_check(dir_key) == True:
+                        slide(dir_key)
+                        same_num_check(dir_key)
+                        slide(dir_key)
+                        tmr = 0
+                
         # ゲーム終了
         elif idx == 2:
             msg = "GAME OVER!"
-            if tmr == 120:
+            
+            if tmr == 120 and auto_mode == False:
+                game_restart()
                 idx = 0
                 tmr = 0
+
+            elif auto_mode == True and auto_count < AUTO_MAX - 1:
+                score_list[auto_count] = score
+                auto_count += 1
+                print("{:3d}回目 - MAX NUM:{:4d}  SCORE:{:5d}".format(auto_count, max_num_search(), score))
+                idx = 3
+                tmr = 0
+
+            elif auto_mode == True and auto_count == AUTO_MAX - 1:
+                if tmr == 1:
+                    score_list[auto_count] = score
+                    auto_count += 1
+                    print("{:3d}回目 - MAX NUM:{:4d}  SCORE:{:5d}".format(auto_count, max_num_search(), score))
+                    score_avg = int(sum(score_list) / len(score_list))
+                    print("HIGH SCORE:{:5d}  AVERAGE SCORE:{:5d}  LOW SCORE:{:5d}".format(max(score_list), score_avg, min(score_list)))
+
+                msg = "[SPACE] : title - [ENTER] : restart"
+
+                if key[pygame.K_SPACE] == 1:
+                    game_restart()
+                    auto_count = 0
+                    idx = 0
+                    tmr = 0
+
+                elif key[pygame.K_RETURN] == 1:
+                    game_restart()
+                    auto_count = 0
+                    idx = 1
+                    tmr = 0
+
+        # オートモード：リスタート
+        elif idx == 3:
+            game_restart()
+            idx = 1
+            tmr = 0
 
         # RESTART or UNDO
         if click == True:
