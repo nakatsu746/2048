@@ -408,6 +408,7 @@ def main():
                     if dir_key != COMMAND_NG:
                         # 確認：コマンド入力の方向にスライドが可能か
                         if slide_check(dir_key) == True:
+                            save()
                             slide(dir_key)              # スライド処理
                             same_num_check(dir_key)     # 同じ数字 -> 数字の合算処理
                             slide(dir_key)              # スライド処理
@@ -417,6 +418,7 @@ def main():
         elif idx == 2:
             msg = "GAME OVER!"
             if tmr == 120:
+                game_restart()
                 idx = 0
                 tmr = 0
 
