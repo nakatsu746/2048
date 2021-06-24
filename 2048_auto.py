@@ -37,7 +37,7 @@ score = 0
 high_score = 0
 # =============== AUTO MODE ===============
 auto_mode = False
-AUTO_MAX = 100
+AUTO_MAX = 50
 score_list = [0]*AUTO_MAX
 move_list = [0]*AUTO_MAX
 auto_count = 0
